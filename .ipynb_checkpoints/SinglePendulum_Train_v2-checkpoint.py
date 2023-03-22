@@ -60,7 +60,7 @@ for i in range(len(x)):
 X = np.vstack(X)
 print(X.shape)
 Xdot = np.vstack(Xdot)
-print(Xdot.shape)
+print(X.shape)
 
 
 
