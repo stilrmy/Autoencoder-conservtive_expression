@@ -12,6 +12,7 @@ def get_pendulum_data(n_ics):
     data['z'] = z.reshape((n_ics*t.size, -1))[:,0:1]
     data['dz'] = z.reshape((n_ics*t.size, -1))[:,1:2]
     data['ddz'] = -9.81*np.sin(data['z'])
+
     return data
 
 
@@ -99,3 +100,4 @@ def wrap_to_pi(z):
     subtract_m = (z_mod > np.pi) * (-2*np.pi)
     return z_mod + subtract_m
 
+print(get_pendulum_data(1)['x'][1,1])

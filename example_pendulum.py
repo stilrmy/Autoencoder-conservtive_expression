@@ -11,6 +11,7 @@ def get_pendulum_data(n_ics):
     data['ddx'] = ddx.reshape((n_ics*t.size, -1))
     data['z'] = z.reshape((n_ics*t.size, -1))[:,0:1]
     data['dz'] = z.reshape((n_ics*t.size, -1))[:,1:2]
+    data['ddz'] = -9.81*np.sin(data['z'])
 
     return data
 
