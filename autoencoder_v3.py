@@ -237,7 +237,9 @@ def loading_coef(params,date,load_number,file_route,device):
     for param_name in params_names_str:
         params['{}'.format(param_name)] = []
         for i in range(len(params['widths'])+1):
-            temp_loader = np.load(r'{}\{}\{}\autoencoder_{}_layer{}.npy'.format(file_route,date,load_number,param_name,i))
+            file_name = 'autoencoder_{}_layer{}.npy'.format(param_name,i)
+            route = os.path.join(file_route,date,load_number,file_name)
+            temp_loader = np.load(route)
             temp_loader = torch.tensor(temp_loader).to(device)
             temp_loader = Variable(temp_loader, requires_grad=True)
             print(temp_loader.shape)
