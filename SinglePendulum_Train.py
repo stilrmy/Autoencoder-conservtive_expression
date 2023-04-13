@@ -1,12 +1,18 @@
-import numpy as np
-import sys 
+#!/usr/bin/env python
+# coding: utf-8
 
-from autoencoder_v2 import loading,encoder_forward,encoder_derivative
+# In[1]:
+
+
+import numpy as np
+import sys
+
 from sympy import symbols, simplify, derive_by_array
 from scipy.integrate import solve_ivp
 from xLSINDy_sp import *
 from sympy.physics.mechanics import *
 from sympy import *
+from Data_generator import image_process
 import sympy
 import torch
 import sys
@@ -15,65 +21,42 @@ import example_pendulum
 import time
 
 
+# In[2]:
 
+
+save = False
+environment = "laptop"
+sample_size = 10
+device = 'cuda:0'
+
+
+# In[3]:
 
 
 sys.path.append(r'../../../HLsearch/')
-device = 'cuda:0'
-data = example_pendulum.get_pendulum_data(40)
-
-
-
 #Saving Directory
-rootdir = "../Single Pendulum/Data/"
-
-num_sample = 100
-training = True
-save = False
-noiselevel = 2e-2
-file_route = R'C:\Users\87106\OneDrive\sindy\progress'
-load_date = '3-6'
-load_ver = 1
-widths = [1024,512,128]
-params={}
-params['ver'] = 1
-params['date'] = '3-7'
-params['widths'] = widths
-params['activation'] = 'sigmoid'
-params = loading(params,load_date,load_ver,file_route,device)
-image = torch.from_numpy(data['x']).to(torch.float32).to(device)
-image_t = torch.from_numpy(data['dx']).to(torch.float32).to(device)
-image_tt = torch.from_numpy(data['ddx']).to(torch.float32).to(device)
-x = encoder_forward(image,params)
-x = x.cpu().detach().numpy()
-dx,ddx = encoder_derivative(image,image_t,image_tt,params)
-dx = dx.cpu().detach().numpy()
-ddx = ddx.cpu().detach().numpy()
+if environment == 'laptop':
+    root_dir =R'C:\Users\87106\OneDrive\sindy\progress'
+elif environment == 'desktop':
+    root_dir = R'E:\OneDrive\sindy\progress'
+elif environment == 'server':
+    root_dir = R'/home/stilrmy/Angle_extractor'
+x,dx,ddx = image_process(sample_size)
 X = []
 Xdot = []
 for i in range(len(x)):
     temp_list = [float(x[i]),float(dx[i])]
-    print(temp_list)
     X.append(temp_list)
     temp_list = [float(dx[i]),float(ddx[i])]
     Xdot.append(temp_list)
 X = np.vstack(X)
 print(X.shape)
 Xdot = np.vstack(Xdot)
-print(X.shape)
 
 
+# In[4]:
 
 
-
-#adding noise
-"""
-mu, sigma = 0, noiselevel
-noise = np.random.normal(mu, sigma, X.shape[0])
-for i in range(X.shape[1]):
-    X[:,i] = X[:,i]+noise
-    Xdot[:,i] = Xdot[:,i]+noise
-"""
 states_dim = 2
 states = ()
 states_dot = ()
@@ -88,11 +71,17 @@ print('states are:',states)
 print('states derivatives are: ', states_dot)
 
 
+# In[5]:
+
+
 #Turn from sympy to str
 states_sym = states
 states_dot_sym = states_dot
 states = list(str(descr) for descr in states)
 states_dot = list(str(descr) for descr in states_dot)
+
+
+# In[6]:
 
 
 #build function expression for the library in str
@@ -101,15 +90,18 @@ expr= HL.buildFunctionExpressions(2,states_dim,states,use_sine=True)
 "a list of candidate function"
 print(expr)
 expr.pop(5)
-"?"
-
-device = 'cuda:0'
 
 
-Zeta, Eta, Delta = LagrangianLibraryTensor(X,Xdot,expr,states,states_dot,scaling=True)
+# In[7]:
+
+
+Zeta, Eta, Delta = LagrangianLibraryTensor(X,Xdot,expr,states,states_dot,device,scaling=True)
 Eta = Eta.to(device)
 Zeta = Zeta.to(device)
 Delta = Delta.to(device)
+
+
+# In[8]:
 
 
 mask = torch.ones(len(expr),device=device)
@@ -117,15 +109,25 @@ xi_L = torch.ones(len(expr), device=device).data.uniform_(-10,10)
 prevxi_L = xi_L.clone().detach()
 
 
+# In[9]:
+
+
 def loss(pred, targ):
     loss = torch.mean((pred - targ)**2) 
     return loss 
+
+
+# In[10]:
 
 
 def clip(w, alpha):
     clipped = torch.minimum(w,alpha)
     clipped = torch.maximum(clipped,-alpha)
     return clipped
+
+
+# In[11]:
+
 
 def proxL1norm(w_hat, alpha):
     if(torch.is_tensor(alpha)==False):
@@ -134,13 +136,16 @@ def proxL1norm(w_hat, alpha):
     return w
 
 
+# In[12]:
+
+
 def training_loop(coef, prevcoef, Zeta, Eta, Delta,xdot, bs, lr, lam):
     loss_list = []
     tl = xdot.shape[0]
     n = xdot.shape[1]
     momentum = True
-    if(torch.is_tensor(xdot)==False):
-        xdot = torch.from_numpy(xdot).to(device).float()
+    #if(torch.is_tensor(xdot)==False):
+        #xdot = torch.from_numpy(xdot).to(device).float()
     v = coef.clone().detach().to(device).requires_grad_(True)
     prev = prevcoef.clone().detach().to(device).requires_grad_(True)
     for i in range(tl//bs):
@@ -158,6 +163,7 @@ def training_loop(coef, prevcoef, Zeta, Eta, Delta,xdot, bs, lr, lam):
         #forward
         q_tt_pred = lagrangianforward(vhat,zeta,eta,delta,x_t,device)
         q_tt_true = xdot[i*bs:(i+1)*bs,n//2:].T
+        q_tt_true = torch.from_numpy(q_tt_true).to(device).float()
         lossval = loss(q_tt_pred, q_tt_true)
         lossval.requires_grad_(True)
         #Backpropagation
@@ -168,8 +174,10 @@ def training_loop(coef, prevcoef, Zeta, Eta, Delta,xdot, bs, lr, lam):
             # Manually zero the gradients after updating weights
             vhat.grad = None
         loss_list.append(lossval.item())
-    print("Average loss : " , torch.tensor(loss_list).mean().item())
     return v, prev, torch.tensor(loss_list).mean().item()
+
+
+# In[13]:
 
 
 Epoch = 100
@@ -178,11 +186,13 @@ lr = 1e-3
 lam = 0.1
 temp = 1000
 while(i<=Epoch):
-    print("\n")
-    print("Stage 1")
-    print("Epoch "+str(i) + "/" + str(Epoch))
-    print("Learning rate : ", lr)
     xi_L , prevxi_L, lossitem= training_loop(xi_L,prevxi_L,Zeta,Eta,Delta,Xdot,128,lr=lr,lam=lam)
+    if i %20 == 0:
+        print("\n")
+        print("Stage 1")
+        print("Epoch "+str(i) + "/" + str(Epoch))
+        print("Learning rate : ", lr)
+        print("Average loss : " , lossitem)
     if(temp <=5e-3):
         break
     if(temp <=1e-1):
@@ -191,7 +201,9 @@ while(i<=Epoch):
     i+=1
 
 
-## Thresholding small indices ##
+# In[14]:
+
+
 threshold = 1e-2
 surv_index = ((torch.abs(xi_L) >= threshold)).nonzero(as_tuple=True)[0].detach().cpu().numpy()
 expr = np.array(expr)[surv_index].tolist()
@@ -202,16 +214,18 @@ mask = torch.ones(len(expr),device=device)
 
 ## obtaining analytical model
 xi_Lcpu = np.around(xi_L.detach().cpu().numpy(),decimals=2)
-L = HL.generateExpression(xi_Lcpu,expr,threshold=1e-2)
-print(simplify(L))
+L = HL.generateExpression(xi_Lcpu,expr)
+print(len(xi_L))
+print(L)
 
 
+# In[ ]:
 
-## Next round Selection ##
+
 for stage in range(100):
     
     #Redefine computation after thresholding
-    Zeta, Eta, Delta = LagrangianLibraryTensor(X,Xdot,expr,states,states_dot,scaling=False)
+    Zeta, Eta, Delta = LagrangianLibraryTensor(X,Xdot,expr,states,states_dot,device,scaling=False)
     Eta = Eta.to(device)
     Zeta = Zeta.to(device)
     Delta = Delta.to(device)
@@ -225,12 +239,14 @@ for stage in range(100):
     else:
         lam = 0.1
     temp = 1000
-    while(i<=Epoch):
-        print("\n")
-        print("Stage " + str(stage+2))
-        print("Epoch "+str(i) + "/" + str(Epoch))
-        print("Learning rate : ", lr)
+    while(i<=Epoch):   
         xi_L , prevxi_L, lossitem= training_loop(xi_L,prevxi_L,Zeta,Eta,Delta,Xdot,128,lr=lr,lam=lam)
+        if i %50 == 0:
+            print("\n")
+            print("Stage ",stage)
+            print("Epoch "+str(i) + "/" + str(Epoch))
+            print("Learning rate : ", lr)
+            print("Average loss : " , lossitem)
         temp = lossitem
         if(temp <=1e-6):
             break
@@ -247,18 +263,19 @@ for stage in range(100):
 
     ## obtaining analytical model
     xi_Lcpu = np.around(xi_L.detach().cpu().numpy(),decimals=3)
-    L = HL.generateExpression(xi_Lcpu,expr,threshold=1e-2)
-    print("Result stage " + str(stage+2) + ":" , simplify(L))
+    L = HL.generateExpression(xi_Lcpu,expr)
+    print("expression length:\t",len(xi_L))
+    print("Result stage " + str(stage+2) + ":" , L)
 
 
-if(save==True):
-    #Saving Equation in string
-    text_file = open(rootdir + "lagrangian_" + str(noiselevel)+ "_noise.txt", "w")
-    text_file.write(L)
-    text_file.close()
+# In[ ]:
 
 
-# %%
+
+
+
+# In[ ]:
+
 
 
 
