@@ -4,7 +4,7 @@ def __clear_env():
             globals().pop(key)
 __clear_env
 import example_pendulum
-import torch; torch.manual_seed(0)
+import torch; torch.manual_seed(6)
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils
@@ -239,7 +239,6 @@ def loading_coef(params,date,load_number,file_route,device):
         for i in range(len(params['widths'])+1):
             file_name = 'autoencoder_{}_layer{}.npy'.format(param_name,i)
             route = os.path.join(file_route,date,load_number,file_name)
-            print(route)
             temp_loader = np.load(route)
             temp_loader = torch.tensor(temp_loader).to(device)
             temp_loader = Variable(temp_loader, requires_grad=True)
@@ -252,12 +251,12 @@ def loading_coef(params,date,load_number,file_route,device):
     return params
 
 # initialization
-# file_route = R'C:\Users\87106\OneDrive\sindy\progress'
-"""
-save_params = True
-load_params = True
+file_route = R'C:\Users\87106\OneDrive\sindy\progress\AE'
 
-load_date = '3-7'
+save_params = True
+load_params = False
+
+load_date = '4-13'
 load_ver = 2
 widths = [1024,512,128]
 params={}
@@ -302,4 +301,3 @@ validation(val_data,params,device)
 if save_params == True:
     saving(params)
 plotting(loss_history,loss_z_history)
-"""
