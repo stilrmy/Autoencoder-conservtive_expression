@@ -250,8 +250,10 @@ def loading_coef(params,date,load_number,file_route,device):
     #expr = np.load(r'{}\{}\{}\expr.npy'.format(file_route,date,load_number))
     return params
 
-# initialization
 file_route = R'C:\Users\87106\OneDrive\sindy\progress\AE'
+'''
+# initialization
+
 
 save_params = True
 load_params = False
@@ -260,9 +262,9 @@ load_date = '4-13'
 load_ver = 2
 widths = [1024,512,128]
 params={}
-params['ver'] = "3"
+params['ver'] = "1"
 params['accumulate_epochs'] = 6000
-params['date'] = '3-7'
+params['date'] = '4-13'
 params['widths'] = widths
 
 if load_params == True:
@@ -275,16 +277,16 @@ else:
     params['decoder_biases'] = decoder_biases
 
 params['activation'] = 'sigmoid'
-params['max_epochs'] = 2000
+params['max_epochs'] = 6000
 params['epoch_size'] = data["x"].shape[0]
 params['batch_size'] = 500
 params['learning_rate'] = 0
-params['learning_rate_stage1'] = 1e-3
-params['learning_rate_stage2'] = 1e-3
+params['learning_rate_stage1'] = 1e-6
+params['learning_rate_stage2'] = 1e-7
 params['loss_weight_x'] = 1
 params['loss_weight_dx'] = 1
 params['loss_weight_ddx'] = 1
-params['learning_rate_switching_point'] = 700
+params['learning_rate_switching_point'] = 500
 loss_history = []
 loss_z_history = []
 params['learning_rate'] = params['learning_rate_stage1']
@@ -301,3 +303,4 @@ validation(val_data,params,device)
 if save_params == True:
     saving(params)
 plotting(loss_history,loss_z_history)
+'''
