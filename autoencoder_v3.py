@@ -4,7 +4,7 @@ def __clear_env():
             globals().pop(key)
 __clear_env
 import example_pendulum
-import torch; torch.manual_seed(6)
+import torch; torch.manual_seed(66)
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.utils
@@ -136,8 +136,8 @@ def training(data,params,device):
         dz_predict,ddz_predict = encoder_derivative(x,dx,ddx,params)
         dx_predict,ddx_predict = decoder_derivative(z_predict,dz_predict,ddz_predict,params)
         loss_x = torch.mean((x - x_predict)**2)
-        loss_dx = torch.mean((x - dx_predict) ** 2)
-        loss_ddx = torch.mean((x - ddx_predict) ** 2)
+        loss_dx = torch.mean((dx - dx_predict) ** 2)
+        loss_ddx = torch.mean((ddx - ddx_predict) ** 2)
         loss_z = torch.mean((z - z_predict)**2)
         loss = params['loss_weight_x'] * loss_x \
                + params['loss_weight_dx'] * loss_dx \
@@ -251,7 +251,7 @@ def loading_coef(params,date,load_number,file_route,device):
     return params
 
 file_route = R'C:\Users\87106\OneDrive\sindy\progress\AE'
-'''
+
 # initialization
 
 
@@ -303,4 +303,3 @@ validation(val_data,params,device)
 if save_params == True:
     saving(params)
 plotting(loss_history,loss_z_history)
-'''
