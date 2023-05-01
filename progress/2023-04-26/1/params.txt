@@ -1,0 +1,1 @@
+{'ver': '1', 'accumulate_epochs': 0, 'date': '2023-04-26', 'widths': [1024, 512, 128], 'activation': 'sigmoid', 'max_epochs': 5000, 'epoch_size': 5000, 'batch_size': 500, 'learning_rate': 1e-06, 'loss_weight_x': 1, 'loss_weight_dx': 0, 'loss_weight_ddx': 5e-05, 'learning_rate_switching_point': 500, 'learning_rate_stage1': 1e-06, 'learning_rate_stage2': 1e-06}	
