@@ -24,14 +24,14 @@ def get_pendulum_data(n_ics,params):
         if params['noise_type'] == 'angle_noise':
             mu,sigma = 0,params['noiselevel']
             noise = np.random.normal(mu,sigma,data['x'].shape[1])
-            for i in data['x'].shape[0]:
+            for i in range(data['x'].shape[0]):
                 data['x'][i] = data['x'][i]+noise
                 data['dx'][i] = data['dx'][i] + noise
                 data['ddx'][i] = data['ddx'][i] + noise
     return data
 
 
-def generate_pendulum_data(n_ics,params):
+def generate_pendulum_data(n_ics):
     f  = lambda z, t : [z[1], -9.81*np.sin(z[0])]
     'z[0]-theta z[1]-theta_dot'
     t = np.arange(0, 10, .02)
@@ -116,4 +116,3 @@ def wrap_to_pi(z):
     subtract_m = (z_mod > np.pi) * (-2*np.pi)
     return z_mod + subtract_m
 
-print(get_pendulum_data(1)['x'][1,1])

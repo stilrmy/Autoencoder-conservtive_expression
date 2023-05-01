@@ -111,9 +111,9 @@ AtE = AtE.to(device)
 # In[32]:
 
 
-def image_process(sample_size):
+def image_process(sample_size,params):
     sample_size = 10
-    data = example_pendulum.get_pendulum_data(sample_size)
+    data = example_pendulum.get_pendulum_data(sample_size,params)
     image = data['x']
     angle = np.zeros(image.shape[0]-2)
     angle_t = np.zeros(image.shape[0]-2)
