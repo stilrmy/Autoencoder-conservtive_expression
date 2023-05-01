@@ -2,7 +2,7 @@ import numpy as np
 from scipy.integrate import odeint
 
 
-def get_pendulum_data(n_ics):
+def get_pendulum_data(n_ics,params):
     t,x,dx,ddx,z = generate_pendulum_data(n_ics)
     data = {}
     data['t'] = t
@@ -13,10 +13,25 @@ def get_pendulum_data(n_ics):
     data['dz'] = z.reshape((n_ics*t.size, -1))[:,1:2]
     data['ddz'] = -9.81*np.sin(data['z'])
 
+    #adding noise
+    if params['adding_noise'] == True:
+        if params['noise_type'] == 'angle_noise':
+            mu,sigma = 0,params['noiselevel']
+            noise = np.random.normal(mu,sigma,data['z'].shape[0])
+            data['z'] = data['z']+noise
+            data['dz'] = data['dz'] + noise
+            data['ddz'] = data['ddz'] + noise
+        if params['noise_type'] == 'angle_noise':
+            mu,sigma = 0,params['noiselevel']
+            noise = np.random.normal(mu,sigma,data['x'].shape[1])
+            for i in data['x'].shape[0]:
+                data['x'][i] = data['x'][i]+noise
+                data['dx'][i] = data['dx'][i] + noise
+                data['ddx'][i] = data['ddx'][i] + noise
     return data
 
 
-def generate_pendulum_data(n_ics):
+def generate_pendulum_data(n_ics,params):
     f  = lambda z, t : [z[1], -9.81*np.sin(z[0])]
     'z[0]-theta z[1]-theta_dot'
     t = np.arange(0, 10, .02)
@@ -39,6 +54,7 @@ def generate_pendulum_data(n_ics):
         dz[i] = np.array([f(z[i,j], t[j]) for j in range(len(t))])
         'theta_dot,theta_ddot'
         i += 1
+
     x,dx,ddx = pendulum_to_movie(z, dz)
 
     # n = 51
