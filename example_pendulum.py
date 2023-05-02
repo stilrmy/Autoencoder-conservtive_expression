@@ -3,7 +3,7 @@ from scipy.integrate import odeint
 
 
 def get_pendulum_data(n_ics,params):
-    t,x,dx,ddx,z = generate_pendulum_data(n_ics)
+    t,x,dx,ddx,z = generate_pendulum_data(n_ics,params)
     data = {}
     data['t'] = t
     data['x'] = x.reshape((n_ics*t.size, -1))
@@ -15,13 +15,7 @@ def get_pendulum_data(n_ics,params):
 
     #adding noise
     if params['adding_noise'] == True:
-        if params['noise_type'] == 'angle_noise':
-            mu,sigma = 0,params['noiselevel']
-            noise = np.random.normal(mu,sigma,data['z'].shape[0])
-            data['z'] = data['z']+noise
-            data['dz'] = data['dz'] + noise
-            data['ddz'] = data['ddz'] + noise
-        if params['noise_type'] == 'angle_noise':
+        if params['noise_type'] == 'image_noise':
             mu,sigma = 0,params['noiselevel']
             noise = np.random.normal(mu,sigma,data['x'].shape[1])
             for i in range(data['x'].shape[0]):
@@ -31,7 +25,7 @@ def get_pendulum_data(n_ics,params):
     return data
 
 
-def generate_pendulum_data(n_ics):
+def generate_pendulum_data(n_ics,params):
     f  = lambda z, t : [z[1], -9.81*np.sin(z[0])]
     'z[0]-theta z[1]-theta_dot'
     t = np.arange(0, 10, .02)
@@ -54,7 +48,19 @@ def generate_pendulum_data(n_ics):
         dz[i] = np.array([f(z[i,j], t[j]) for j in range(len(t))])
         'theta_dot,theta_ddot'
         i += 1
-
+    if params['adding_noise'] == True:
+        if params['noise_type'] == 'angle_noise':
+            print('Adding noise to the pendulum data')
+            print('noise_type: angle noise')
+            mu,sigma = 0,params['noiselevel']
+            noise = np.random.normal(mu,sigma,z.shape[1])
+            for i in range(z.shape[0]):
+                for j in range(z.shape[2]):
+                    z[i,:,j] = z[i,:,j] + noise
+            for i in range(dz.shape[0]):
+                for j in range(dz.shape[2]):
+                    dz[i,:,j] = dz[i,:,j] + noise
+            
     x,dx,ddx = pendulum_to_movie(z, dz)
 
     # n = 51
