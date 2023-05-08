@@ -1,9 +1,11 @@
 import numpy as np
+import random
 from scipy.integrate import odeint
-
+from PIL import Image
 
 def get_pendulum_data(n_ics,params):
     t,x,dx,ddx,z = generate_pendulum_data(n_ics,params)
+
     data = {}
     data['t'] = t
     data['x'] = x.reshape((n_ics*t.size, -1))
@@ -14,19 +16,30 @@ def get_pendulum_data(n_ics,params):
     data['ddz'] = -9.81*np.sin(data['z'])
 
     #adding noise
-    if params['adding_noise'] == True:
+    
+    if params['adding_noise'] == True :
         if params['noise_type'] == 'image_noise':
+            print('Adding noise to the pendulum data')
+            print('noise_type: image noise')
             mu,sigma = 0,params['noiselevel']
             noise = np.random.normal(mu,sigma,data['x'].shape[1])
             for i in range(data['x'].shape[0]):
                 data['x'][i] = data['x'][i]+noise
                 data['dx'][i] = data['dx'][i] + noise
                 data['ddx'][i] = data['ddx'][i] + noise
+
     return data
 
+def plot(n_ics,params):
+    t, x, dx, ddx, z = generate_pendulum_data(n_ics, params)
+    print(x.shape)
+    for i in range(n_ics):
+        image = Image.fromarray(x[i,0,:,:]*255)
+        image.show()
+    return
 
 def generate_pendulum_data(n_ics,params):
-    f  = lambda z, t : [z[1], -9.81*np.sin(z[0])]
+    f  = lambda z, t: [z[1], -9.81*np.sin(z[0])]
     'z[0]-theta z[1]-theta_dot'
     t = np.arange(0, 10, .02)
     '500 time steps'
@@ -48,20 +61,24 @@ def generate_pendulum_data(n_ics,params):
         dz[i] = np.array([f(z[i,j], t[j]) for j in range(len(t))])
         'theta_dot,theta_ddot'
         i += 1
-    if params['adding_noise'] == True:
+    if params['adding_noise'] == True :
         if params['noise_type'] == 'angle_noise':
             print('Adding noise to the pendulum data')
             print('noise_type: angle noise')
             mu,sigma = 0,params['noiselevel']
             noise = np.random.normal(mu,sigma,z.shape[1])
+            z_noise = np.zeros(z.shape)
+            dz_noise = np.zeros(z.shape)
             for i in range(z.shape[0]):
                 for j in range(z.shape[2]):
-                    z[i,:,j] = z[i,:,j] + noise
+                    z_noise[i,:,j] = z[i,:,j] + noise
             for i in range(dz.shape[0]):
                 for j in range(dz.shape[2]):
-                    dz[i,:,j] = dz[i,:,j] + noise
+                    dz_noise[i,:,j] = dz[i,:,j] + noise
+            x,dx,ddx = pendulum_to_movie(z_noise, dz_noise)
+    x,dx,ddx = pendulum_to_movie(z, dz,params)
             
-    x,dx,ddx = pendulum_to_movie(z, dz)
+   
 
     # n = 51
     # xx,yy = np.meshgrid(np.linspace(-1.5,1.5,n),np.linspace(1.5,-1.5,n))
@@ -89,30 +106,34 @@ def generate_pendulum_data(n_ics,params):
     return t,x,dx,ddx,z
 
 
-def pendulum_to_movie(z, dz):
+def pendulum_to_movie(z, dz, params):
     n_ics = z.shape[0]
     n_samples = z.shape[1]
     n = 51
     y1,y2 = np.meshgrid(np.linspace(-1.5,1.5,n),np.linspace(1.5,-1.5,n))
-    create_image = lambda theta : np.exp(-((y1-np.cos(theta-np.pi/2))**2 + (y2-np.sin(theta-np.pi/2))**2)/.05)
-    argument_derivative = lambda theta,dtheta : -1/.05*(2*(y1 - np.cos(theta-np.pi/2))*np.sin(theta-np.pi/2)*dtheta \
-                                                      + 2*(y2 - np.sin(theta-np.pi/2))*(-np.cos(theta-np.pi/2))*dtheta)
-    argument_derivative2 = lambda theta,dtheta,ddtheta : -2/.05*((np.sin(theta-np.pi/2))*np.sin(theta-np.pi/2)*dtheta**2 \
-                                                               + (y1 - np.cos(theta-np.pi/2))*np.cos(theta-np.pi/2)*dtheta**2 \
-                                                               + (y1 - np.cos(theta-np.pi/2))*np.sin(theta-np.pi/2)*ddtheta \
-                                                               + (-np.cos(theta-np.pi/2))*(-np.cos(theta-np.pi/2))*dtheta**2 \
-                                                               + (y2 - np.sin(theta-np.pi/2))*(np.sin(theta-np.pi/2))*dtheta**2 \
-                                                               + (y2 - np.sin(theta-np.pi/2))*(-np.cos(theta-np.pi/2))*ddtheta)
+    create_image = lambda theta,len : np.exp(-((y1-len*np.cos(theta-np.pi/2))**2 + (y2-len*np.sin(theta-np.pi/2))**2)/.05)
+    argument_derivative = lambda theta,dtheta : -1/.05*(2*(y1 - len*np.cos(theta-np.pi/2))*len*np.sin(theta-np.pi/2)*dtheta \
+                                                      + 2*(y2 - len*np.sin(theta-np.pi/2))*(-len*np.cos(theta-np.pi/2))*dtheta)
+    argument_derivative2 = lambda theta,dtheta,ddtheta : -2/.05*((len*np.sin(theta-np.pi/2))*len*np.sin(theta-np.pi/2)*dtheta**2 \
+                                                               + (y1 - len*np.cos(theta-np.pi/2))*len*np.cos(theta-np.pi/2)*dtheta**2 \
+                                                               + (y1 - len*np.cos(theta-np.pi/2))*len*np.sin(theta-np.pi/2)*ddtheta \
+                                                               + (-len*np.cos(theta-np.pi/2))*(-len*np.cos(theta-np.pi/2))*dtheta**2 \
+                                                               + (y2 - len*np.sin(theta-np.pi/2))*(len*np.sin(theta-np.pi/2))*dtheta**2 \
+                                                               + (y2 - len*np.sin(theta-np.pi/2))*(-len*np.cos(theta-np.pi/2))*ddtheta)
 
     x = np.zeros((n_ics, n_samples, n, n))
     dx = np.zeros((n_ics, n_samples, n, n))
     ddx = np.zeros((n_ics, n_samples, n, n))
     for i in range(n_ics):
+        if params['changing_length'] == True:
+            len = random.uniform(0.2,1)
+        else:
+            len = 1
         for j in range(n_samples):
             z[i,j,0] = wrap_to_pi(z[i,j,0])
-            x[i,j] = create_image(z[i,j,0])
-            dx[i,j] = (create_image(z[i,j,0])*argument_derivative(z[i,j,0], dz[i,j,0]))
-            ddx[i,j] = create_image(z[i,j,0])*((argument_derivative(z[i,j,0], dz[i,j,0]))**2 \
+            x[i,j] = create_image(z[i,j,0],len)
+            dx[i,j] = (create_image(z[i,j,0],len)*argument_derivative(z[i,j,0], dz[i,j,0]))
+            ddx[i,j] = create_image(z[i,j,0],len)*((argument_derivative(z[i,j,0], dz[i,j,0]))**2 \
                             + argument_derivative2(z[i,j,0], dz[i,j,0], dz[i,j,1]))
     return x,dx,ddx
 
