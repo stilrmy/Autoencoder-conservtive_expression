@@ -31,34 +31,43 @@ def get_pendulum_data(n_ics,params):
     return data
 
 def plot(n_ics,params):
-    t, x, dx, ddx, z = generate_pendulum_data(n_ics, params)
+    t, x, dx, ddx, X, Xdot = generate_pendulum_data(n_ics,params)
     print(x.shape)
-    for i in range(n_ics):
-        image = Image.fromarray(x[i,0,:,:]*255)
-        image.show()
+    imglist = []
+    for i in range(500):
+        image_pend = Image.fromarray(x[0,i,:,:]*255).convert('L')
+        center_dot = np.zeros([51,51])
+        center_dot[26,26] = 255
+        center_dot = Image.fromarray(center_dot+x[0,i,:,:]).convert('L')
+        image = Image.merge("RGB",(image_pend,center_dot,image_pend))
+        imglist.append(image)
+    imglist[0].save('save_name.gif', save_all=True, append_images=imglist, duration=0.1)
     return
 
 def generate_pendulum_data(n_ics,params):
-    f  = lambda z, t: [z[1], -9.81*np.sin(z[0])]
-    'z[0]-theta z[1]-theta_dot'
+    def pend(y,t,c,g,l):
+        theta, omega = y
+        dydt = [omega, -c*omega/g - g*np.sin(theta)/l]
+        return dydt
+    'pendulum with friction'
     t = np.arange(0, 10, .02)
     '500 time steps'
-
     z = np.zeros((n_ics,t.size,2))
     dz = np.zeros(z.shape)
 
     z1range = np.array([-np.pi,np.pi])
     z2range = np.array([-2.1,2.1])
     i = 0
+    c = params['c']; g = params['g']; l = params['l']
     while (i < n_ics):
         z0 = np.array([(z1range[1]-z1range[0])*np.random.rand()+z1range[0],
             (z2range[1]-z2range[0])*np.random.rand()+z2range[0]])
         if np.abs(z0[1]**2/2. - np.cos(z0[0])) > .99:
             continue
-        z[i] = odeint(f, z0, t)
+        z[i] = odeint(pend, z0, t , args = (c,g,l))
+        'z.shape:(n_ics,t,2)'
         'theta,theta_dot'
-
-        dz[i] = np.array([f(z[i,j], t[j]) for j in range(len(t))])
+        dz[i] = np.array([pend(z[i,j,:], t[j], c, g, l) for j in range(len(t))])
         'theta_dot,theta_ddot'
         i += 1
     if params['adding_noise'] == True :
@@ -103,7 +112,7 @@ def generate_pendulum_data(n_ics,params):
     #         ddx[i,j] = create_image(z[i,j,0])*((argument_derivative(z[i,j,0], dz[i,j,0]))**2 \
     #                         + argument_derivative2(z[i,j,0], dz[i,j,0], dz[i,j,1]))
 
-    return t,x,dx,ddx,z
+    return t,x,dx,ddx,z,dz
 
 
 def pendulum_to_movie(z, dz, params):
@@ -143,3 +152,28 @@ def wrap_to_pi(z):
     subtract_m = (z_mod > np.pi) * (-2*np.pi)
     return z_mod + subtract_m
 
+environment = "server"
+loss_log = []
+params = {}
+#params['learning_rate'] = trial.suggest_float('lr',0,1)
+params['epochs'] = 5000
+params['batch_size'] = 500
+if environment == 'laptop':
+    params['root_dir'] =R'C:\Users\87106\OneDrive\sindy\progress'
+elif environment == 'desktop':
+    params['root_dir'] = R'E:\OneDrive\sindy\progress'
+elif environment == 'server':
+    params['root_dir'] = R'/mnt/ssd1/stilrmy/Angle_detector/progress'
+params['learning_rate'] = 1e-8
+
+
+#noise setting
+params['adding_noise'] = False
+params['noise_type'] = 'angle_noise'
+params['noiselevel'] = 1e-3
+#pendulum length setting
+params['changing_length'] = False
+params['c'] = 1.4e-4
+params['g'] = 9.81
+params['l'] = 1
+plot(1,params)
