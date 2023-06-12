@@ -29,7 +29,7 @@ device = 'cuda:0'
 # In[ ]:
 
 
-environment = "laptop"
+environment = "desktop"
 if environment == 'laptop':
     root_dir =R'C:\Users\87106\OneDrive\sindy\progress'
 elif environment == 'desktop':

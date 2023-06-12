@@ -4,7 +4,7 @@ from scipy.integrate import odeint
 from PIL import Image
 
 def get_pendulum_data(n_ics,params):
-    t,x,dx,ddx,z = generate_pendulum_data(n_ics,params)
+    t,x,dx,ddx,z,dz = generate_pendulum_data(n_ics,params)
 
     data = {}
     data['t'] = t
@@ -13,7 +13,7 @@ def get_pendulum_data(n_ics,params):
     data['ddx'] = ddx.reshape((n_ics*t.size, -1))
     data['z'] = z.reshape((n_ics*t.size, -1))[:,0:1]
     data['dz'] = z.reshape((n_ics*t.size, -1))[:,1:2]
-    data['ddz'] = -9.81*np.sin(data['z'])
+    data['ddz'] = dz.reshape((n_ics*t.size, -1))[:,1:2]
 
     #adding noise
     
@@ -45,9 +45,9 @@ def plot(n_ics,params):
     return
 
 def generate_pendulum_data(n_ics,params):
-    def pend(y,t,c,g,l):
+    def pend(y,t,dc,g,l):
         theta, omega = y
-        dydt = [omega, -c*omega/g - g*np.sin(theta)/l]
+        dydt = [omega, -dc*omega/g - g*np.sin(theta)/l]
         return dydt
     'pendulum with friction'
     t = np.arange(0, 10, .02)
@@ -58,16 +58,18 @@ def generate_pendulum_data(n_ics,params):
     z1range = np.array([-np.pi,np.pi])
     z2range = np.array([-2.1,2.1])
     i = 0
-    c = params['c']; g = params['g']; l = params['l']
+    dc = params['c']
+    g = params['g']
+    l = params['l']
     while (i < n_ics):
         z0 = np.array([(z1range[1]-z1range[0])*np.random.rand()+z1range[0],
             (z2range[1]-z2range[0])*np.random.rand()+z2range[0]])
         if np.abs(z0[1]**2/2. - np.cos(z0[0])) > .99:
             continue
-        z[i] = odeint(pend, z0, t , args = (c,g,l))
+        z[i] = odeint(pend, z0, t , args = (dc,g,l))
         'z.shape:(n_ics,t,2)'
         'theta,theta_dot'
-        dz[i] = np.array([pend(z[i,j,:], t[j], c, g, l) for j in range(len(t))])
+        dz[i] = np.array([pend(z[i,j,:], t[j], dc, g, l) for j in range(len(t))])
         'theta_dot,theta_ddot'
         i += 1
     if params['adding_noise'] == True :

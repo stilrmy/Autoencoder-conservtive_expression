@@ -29,7 +29,7 @@ device = 'cuda:0'
 # In[ ]:
 
 
-environment = "server"
+environment = "desktop"
 if environment == 'laptop':
     root_dir =R'C:\Users\87106\OneDrive\sindy\progress'
 elif environment == 'desktop':
@@ -104,7 +104,7 @@ class angle_t_predict(nn.Module):
         x = self.fc6(x) 
         return x
 AtE = angle_t_predict()
-AtE.load_state_dict(torch.load(AtE_path))
+AtE.load_state_dict(torch.load(AtE_path,map_location=torch.device('cuda:0')))
 AtE = AtE.to(device)
 
 
