@@ -3,7 +3,6 @@ import random
 from scipy.integrate import odeint
 from PIL import Image
 from scipy.integrate import solve_ivp
-from sympy import derive_by_array
 
 # Pendulum rod lengths (m), bob masses (kg).
 L1, L2 = 1, 1
@@ -45,11 +44,8 @@ def plot(n_ics,params):
     print(x.shape)
     imglist = []
     for i in range(500):
-        image_pend = Image.fromarray(x[0,i,:,:]*255).convert('L')
-        center_dot = np.zeros([51,51])
-        center_dot[26,26] = 255
-        center_dot = Image.fromarray(center_dot+x[0,i,:,:]).convert('L')
-        image = Image.merge("RGB",(image_pend,center_dot,image_pend))
+        image = Image.fromarray(x[i,:,:]*255)
+        print(image)
         imglist.append(image)
     imglist[0].save('save_name.gif', save_all=True, append_images=imglist, duration=0.1)
     return
@@ -106,25 +102,23 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
     n_samples = 500
     n = 51
     y1,y2 = np.meshgrid(np.linspace(-2.5,2.5,n),np.linspace(2.5,-2.5,n))
-    create_image_0 = lambda theta1,theta2,len : np.exp(-((y1-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta1-np.pi/2))**2)/.05)
-    create_image_1 = lambda theta1,theta2,len : np.exp(-((y1-len*np.cos(theta2-np.pi/2)-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta2-np.pi/2)-len*np.sin(theta1-np.pi/2))**2)/.05)
+    create_image = lambda theta1,theta2,len : np.exp(-((y1-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta1-np.pi/2))**2)/.05)\
+                                                  -0.5*np.exp(-((y1-len*np.cos(theta2-np.pi/2)-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta2-np.pi/2)-len*np.sin(theta1-np.pi/2))**2)/.05)
 
-    argument_derivative_0 = lambda theta1,dtheta1,theta2,dtheta2,len : -1/.05*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1
+    argument_derivative = lambda theta1,dtheta1,theta2,dtheta2,len : -1/.05*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1
                                                       + 2*(y2 - len*np.sin(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*dtheta1)\
-
-    argument_derivative_1 = lambda theta1,dtheta1,theta2,dtheta2,len : -1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1)-
+                                                      +1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1)-
                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta1-np.pi/2))*dtheta1)\
-                                                      -1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*dtheta2)-
+                                                      +1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*dtheta2)-
                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2))*dtheta2)
 
-    argument_derivative2_0 = lambda theta1,dtheta1,ddtheta1,theta2,dtheta2,ddtheta2,len : -2/.05*((len*np.sin(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1**2
+    argument_derivative2 = lambda theta1,dtheta1,ddtheta1,theta2,dtheta2,ddtheta2,len : -2/.05*((len*np.sin(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1**2
                                                                + (y1 - len*np.cos(theta1-np.pi/2))*len*np.cos(theta1-np.pi/2)*dtheta1**2
                                                                + (y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*ddtheta1
                                                                + (-len*np.cos(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*dtheta1**2
                                                                + (y2 - len*np.sin(theta1-np.pi/2))*(len*np.sin(theta1-np.pi/2))*dtheta1**2
-                                                               + (y2 - len*np.sin(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*ddtheta1)
-    
-    argument_derivative2_1 = lambda theta1,dtheta1,ddtheta1,theta2,dtheta2,ddtheta2,len : -2/0.05*(2*np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)+2*np.cos(theta1-np.pi/2)*np.cos(theta1-np.pi/2)**2)*dtheta2*dtheta1-1/0.05*(
+                                                               + (y2 - len*np.sin(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*ddtheta1)\
+                                                               -1*(1/0.05*(2*np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)+2*np.cos(theta1-np.pi/2)*np.cos(theta1-np.pi/2)**2)*dtheta2*dtheta1-1/0.05*(
                                                                2*(y1*len*np.cos(theta1-np.pi/2)-np.cos(2*theta1-np.pi)*len**2+np.cos(theta1-np.pi/2)*np.cos(theta2-np.pi/2)*len**2)-2*(
                                                                -y2*len*np.sin(theta1-np.pi/2)-np.cos(2*theta1-np.pi)*len**2-np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)*len**2))*dtheta1**2+\
                                                                1/.05*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*ddtheta1
@@ -133,8 +127,7 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
                                                                -1/0.05*(2*(y1*len*np.cos(theta2-np.pi/2)-np.cos(theta1-np.pi/2)*np.cos(theta2-np.pi/2)*len**2-np.cos(2*theta2-np.pi)*len**2)
                                                                -2*(-y2*len*np.sin(theta2-np.pi/2)+np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)*len**2-np.cos(2*theta2-np.pi)))*dtheta2**2\
                                                                -1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*ddtheta2)-
-                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2))*ddtheta2)
-
+                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2))*ddtheta2))
 
                                                               # -2/.05*((len*np.sin(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*dtheta2**2
                                                                #+ (y1 - len*np.cos(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2)*dtheta2**2
