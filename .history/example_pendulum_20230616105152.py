@@ -20,9 +20,9 @@ def get_pendulum_data(n_ics,params):
     data['x'] = x.reshape((n_ics*t.size, -1))
     data['dx'] = dx.reshape((n_ics*t.size, -1))
     data['ddx'] = ddx.reshape((n_ics*t.size, -1))
-    data['z'] = X[:,0:2]
-    data['dz'] = X[:,2:]
-    data['ddz'] = Xdot[:,2:]
+    data['z'] = X[:,0:1]
+    data['dz'] = X[:,2:3]
+    data['ddz'] = Xdot[:,2:3]
 
     #adding noise
 

@@ -10,7 +10,7 @@ m1, m2 = 1, 1
 # The gravitational acceleration (m.s-2).
 g = 9.81
 tau = 0
-
+attenuation_rate = 50 #the size of the pendulum dot, larger value --> smaller dot, original value --> 20
 
 def get_pendulum_data(n_ics,params):
     t,x,dx,ddx,X,Xdot = generate_pendulum_data(n_ics,params)
@@ -20,9 +20,9 @@ def get_pendulum_data(n_ics,params):
     data['x'] = x.reshape((n_ics*t.size, -1))
     data['dx'] = dx.reshape((n_ics*t.size, -1))
     data['ddx'] = ddx.reshape((n_ics*t.size, -1))
-    data['z'] = X[:,0:2]
-    data['dz'] = X[:,2:]
-    data['ddz'] = Xdot[:,2:]
+    data['z'] = X[:,0:1]
+    data['dz'] = X[:,2:3]
+    data['ddz'] = Xdot[:,2:3]
 
     #adding noise
 
@@ -40,7 +40,7 @@ def get_pendulum_data(n_ics,params):
     return data
 
 def plot(n_ics,params):
-    t, x, dx, ddx, X, Xdot = generate_pendulum_data(n_ics,params)
+    t, x, dx, ddx, X, Xdot = generate_pendulum_data(n_ics,params,attenuation_rate)
     print(x.shape)
     imglist = []
     for i in range(500):
@@ -93,43 +93,43 @@ def generate_pendulum_data(n_ics,params):
             for i in range(X.shape[1]):
                 X_noise[:,i] = X[:,i]+noise
                 Xdot_noise[:,i] = Xdot[:,i]+noise
-            x,dx,ddx = pendulum_to_movie(X_noise,Xdot_noise,n_ics,params)
-    x,dx,ddx = pendulum_to_movie(X,Xdot,n_ics,params)
+            x,dx,ddx = pendulum_to_movie(X_noise,Xdot_noise,n_ics,params,attenuation_rate)
+    x,dx,ddx = pendulum_to_movie(X,Xdot,n_ics,params,attenuation_rate)
     return t,x,dx,ddx,X,Xdot
 
 
-def pendulum_to_movie(X,Xdot,n_ics,params):
+def pendulum_to_movie(X,Xdot,n_ics,params,attenuation_rate):
     n_samples = 500
     n = 51
     y1,y2 = np.meshgrid(np.linspace(-2.5,2.5,n),np.linspace(2.5,-2.5,n))
-    create_image = lambda theta1,theta2,len : np.exp(-((y1-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta1-np.pi/2))**2)/.05)\
-                                                + 0.5*np.exp(-((y1-len*np.cos(theta2-np.pi/2)-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta2-np.pi/2)-len*np.sin(theta1-np.pi/2))**2)/.05)
+    create_image = lambda theta1,theta2,len,attenuation_rate : np.exp(-((y1-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta1-np.pi/2))**2)*attenuation_rate)\
+                                                  -0.5*np.exp(-((y1-len*np.cos(theta2-np.pi/2)-len*np.cos(theta1-np.pi/2))**2 + (y2-len*np.sin(theta2-np.pi/2)-len*np.sin(theta1-np.pi/2))**2)*attenuation_rate)
 
-    argument_derivative = lambda theta1,dtheta1,theta2,dtheta2,len : -1/.05*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1
+    argument_derivative = lambda theta1,dtheta1,theta2,dtheta2,len,attenuation_rate : -1*attenuation_rate*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1
                                                       + 2*(y2 - len*np.sin(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*dtheta1)\
-                                                      -1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1)-
+                                                      +1*attenuation_rate*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1)-
                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta1-np.pi/2))*dtheta1)\
-                                                      -1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*dtheta2)-
+                                                      +1*attenuation_rate*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*dtheta2)-
                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2))*dtheta2)
 
-    argument_derivative2 = lambda theta1,dtheta1,ddtheta1,theta2,dtheta2,ddtheta2,len : -2/.05*((len*np.sin(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1**2
+    argument_derivative2 = lambda theta1,dtheta1,ddtheta1,theta2,dtheta2,ddtheta2,len,attenuation_rate : -2*attenuation_rate*((len*np.sin(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1**2
                                                                + (y1 - len*np.cos(theta1-np.pi/2))*len*np.cos(theta1-np.pi/2)*dtheta1**2
                                                                + (y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*ddtheta1
                                                                + (-len*np.cos(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*dtheta1**2
                                                                + (y2 - len*np.sin(theta1-np.pi/2))*(len*np.sin(theta1-np.pi/2))*dtheta1**2
                                                                + (y2 - len*np.sin(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*ddtheta1)\
-                                                               -1/0.05*(2*np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)+2*np.cos(theta1-np.pi/2)*np.cos(theta1-np.pi/2)**2)*dtheta2*dtheta1-1/0.05*(
+                                                               -1*(1*attenuation_rate*(2*np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)+2*np.cos(theta1-np.pi/2)*np.cos(theta1-np.pi/2)**2)*dtheta2*dtheta1-1*attenuation_rate*(
                                                                2*(y1*len*np.cos(theta1-np.pi/2)-np.cos(2*theta1-np.pi)*len**2+np.cos(theta1-np.pi/2)*np.cos(theta2-np.pi/2)*len**2)-2*(
                                                                -y2*len*np.sin(theta1-np.pi/2)-np.cos(2*theta1-np.pi)*len**2-np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)*len**2))*dtheta1**2+\
-                                                               1/.05*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*ddtheta1
+                                                               1*attenuation_rate*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*ddtheta1
                                                                + 2*(y2 - len*np.sin(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*ddtheta1)\
-                                                               -1/0.05*(2*np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)+2*np.cos(theta1-np.pi/2)*np.cos(theta1-np.pi/2)**2)*dtheta2*dtheta1\
-                                                               -1/0.05*(2*(y1*len*np.cos(theta2-np.pi/2)-np.cos(theta1-np.pi/2)*np.cos(theta2-np.pi/2)*len**2-np.cos(2*theta2-np.pi)*len**2)
+                                                               -1*attenuation_rate*(2*np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)+2*np.cos(theta1-np.pi/2)*np.cos(theta1-np.pi/2)**2)*dtheta2*dtheta1\
+                                                               -1*attenuation_rate*(2*(y1*len*np.cos(theta2-np.pi/2)-np.cos(theta1-np.pi/2)*np.cos(theta2-np.pi/2)*len**2-np.cos(2*theta2-np.pi)*len**2)
                                                                -2*(-y2*len*np.sin(theta2-np.pi/2)+np.sin(theta1-np.pi/2)*np.sin(theta2-np.pi/2)*len**2-np.cos(2*theta2-np.pi)))*dtheta2**2\
-                                                               -1/.05*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*ddtheta2)-
-                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2))*ddtheta2)
+                                                               -1*attenuation_rate*(2*((y1-len*np.cos(theta1-np.pi/2)-len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*ddtheta2)-
+                                                               2*((y2-len*np.sin(theta1-np.pi/2)-len*np.sin(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2))*ddtheta2))
 
-                                                              # -2/.05*((len*np.sin(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*dtheta2**2
+                                                              # -2*attenuation_rate*((len*np.sin(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*dtheta2**2
                                                                #+ (y1 - len*np.cos(theta2-np.pi/2))*len*np.cos(theta2-np.pi/2)*dtheta2**2
                                                                #+ (y1 - len*np.cos(theta2-np.pi/2))*len*np.sin(theta2-np.pi/2)*ddtheta2
                                                                #+ (-len*np.cos(theta2-np.pi/2))*(-len*np.cos(theta2-np.pi/2))*dtheta2**2
@@ -144,10 +144,10 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
             len = random.uniform(0.2,1)
         else:
             len = 1
-        x[i, :, :] = create_image(X[i, 0], X[i, 1], len)
-        dx[i, :, :] = (create_image(X[i, 0], X[i, 1], len)*argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))
-        ddx[i, :, :] = create_image(X[i, 0], X[i, 1], len)*((argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))**2
-                    + argument_derivative2(X[i,0],Xdot[i,0],Xdot[i,2],X[i,1],Xdot[i,1],Xdot[i,3],len))
+        x[i, :, :] = create_image(X[i, 0], X[i, 1], len,attenuation_rate)
+        dx[i, :, :] = (create_image(X[i, 0], X[i, 1], len,attenuation_rate)*argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len,attenuation_rate))
+        ddx[i, :, :] = create_image(X[i, 0], X[i, 1], len,attenuation_rate)*((argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len,attenuation_rate))**2
+                    + argument_derivative2(X[i,0],Xdot[i,0],Xdot[i,2],X[i,1],Xdot[i,1],Xdot[i,3],len,attenuation_rate))
     i , len = 1,1
     return x,dx,ddx
 
