@@ -46,7 +46,7 @@ def plot(n_ics,params):
     print(x.shape)
     imglist = []
     for i in range(500):
-        image = Image.fromarray(x[i,:,:])
+        image = Image.fromarray(x[i,:,:]*255)
         print(image)
         imglist.append(image)
     imglist[0].save('save_name.gif', save_all=True, append_images=imglist, duration=0.1)
@@ -133,8 +133,8 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
     n_samples = 500
     n = 51
     y1,y2 = np.meshgrid(np.linspace(-2.5,2.5,n),np.linspace(2.5,-2.5,n))
-    create_image = lambda theta1,theta2,L1,L2,attenuation_rate : np.exp(-((y1-L1*np.cos(theta1-np.pi/2))**2 + (y2-L1*np.sin(theta1-np.pi/2))**2)*attenuation_rate)\
-                                                + 0.5*np.exp(-((y1-L2*np.cos(theta2-np.pi/2)-L1*np.cos(theta1-np.pi/2))**2 + (y2-L2*np.sin(theta2-np.pi/2)-L1*np.sin(theta1-np.pi/2))**2)*attenuation_rate)
+    create_image = lambda theta1,theta2,L1,L2 : np.exp(-((y1-L1*np.cos(theta1-np.pi/2))**2 + (y2-L1*np.sin(theta1-np.pi/2))**2)/.05)\
+                                                + 0.5*np.exp(-((y1-L2*np.cos(theta2-np.pi/2)-L1*np.cos(theta1-np.pi/2))**2 + (y2-L2*np.sin(theta2-np.pi/2)-L1*np.sin(theta1-np.pi/2))**2)/.05)
 
     argument_derivative = lambda theta1,dtheta1,theta2,dtheta2,len : -1/.05*(2*(y1 - len*np.cos(theta1-np.pi/2))*len*np.sin(theta1-np.pi/2)*dtheta1
                                                       + 2*(y2 - len*np.sin(theta1-np.pi/2))*(-len*np.cos(theta1-np.pi/2))*dtheta1)\
@@ -177,15 +177,14 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
             len = random.uniform(0.2,1)
         else:
             len = 1
-        x[i, :, :] = create_image(X[i, 0], X[i, 1], L1,L2,attenuation_rate)*255+center_dot
-        dx[i, :, :] = (create_image(X[i, 0], X[i, 1], L1,L2,attenuation_rate)*argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))*255+center_dot
-        ddx[i, :, :] = create_image(X[i, 0], X[i, 1], L1,L2,attenuation_rate)*((argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))**2
+        x[i, :, :] = create_image(X[i, 0], X[i, 1], L1,L2)*255+center_dot
+        dx[i, :, :] = (create_image(X[i, 0], X[i, 1], len)*argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))*255+center_dot
+        ddx[i, :, :] = create_image(X[i, 0], X[i, 1], len)*((argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))**2
                     + argument_derivative2(X[i,0],Xdot[i,0],Xdot[i,2],X[i,1],Xdot[i,1],Xdot[i,3],len))*255+center_dot
     i , len = 1,1
     return x,dx,ddx
 
 params = {}
-attenuation_rate = 100
 params['adding_noise'] = False
 params['changing_length'] = False
 params['specific_random_seed'] = True

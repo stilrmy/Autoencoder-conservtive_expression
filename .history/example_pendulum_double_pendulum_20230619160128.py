@@ -46,7 +46,7 @@ def plot(n_ics,params):
     print(x.shape)
     imglist = []
     for i in range(500):
-        image = Image.fromarray(x[i,:,:])
+        image = Image.fromarray(x[i,:,:]*255)
         print(image)
         imglist.append(image)
     imglist[0].save('save_name.gif', save_all=True, append_images=imglist, duration=0.1)
@@ -177,15 +177,14 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
             len = random.uniform(0.2,1)
         else:
             len = 1
-        x[i, :, :] = create_image(X[i, 0], X[i, 1], L1,L2,attenuation_rate)*255+center_dot
-        dx[i, :, :] = (create_image(X[i, 0], X[i, 1], L1,L2,attenuation_rate)*argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))*255+center_dot
-        ddx[i, :, :] = create_image(X[i, 0], X[i, 1], L1,L2,attenuation_rate)*((argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))**2
+        x[i, :, :] = create_image(X[i, 0], X[i, 1], L1,L2)*255+center_dot
+        dx[i, :, :] = (create_image(X[i, 0], X[i, 1], L1,L2)*argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))*255+center_dot
+        ddx[i, :, :] = create_image(X[i, 0], X[i, 1], L1,L2)*((argument_derivative(X[i,0],X[i,2],X[i,1],X[i,3],len))**2
                     + argument_derivative2(X[i,0],Xdot[i,0],Xdot[i,2],X[i,1],Xdot[i,1],Xdot[i,3],len))*255+center_dot
     i , len = 1,1
     return x,dx,ddx
 
 params = {}
-attenuation_rate = 100
 params['adding_noise'] = False
 params['changing_length'] = False
 params['specific_random_seed'] = True

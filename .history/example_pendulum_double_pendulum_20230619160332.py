@@ -46,7 +46,7 @@ def plot(n_ics,params):
     print(x.shape)
     imglist = []
     for i in range(500):
-        image = Image.fromarray(x[i,:,:])
+        image = Image.fromarray(x[i,:,:]*255)
         print(image)
         imglist.append(image)
     imglist[0].save('save_name.gif', save_all=True, append_images=imglist, duration=0.1)
@@ -185,7 +185,7 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
     return x,dx,ddx
 
 params = {}
-attenuation_rate = 100
+attenuation_rate = 500
 params['adding_noise'] = False
 params['changing_length'] = False
 params['specific_random_seed'] = True

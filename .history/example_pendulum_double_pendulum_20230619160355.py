@@ -185,7 +185,7 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
     return x,dx,ddx
 
 params = {}
-attenuation_rate = 100
+attenuation_rate = 500
 params['adding_noise'] = False
 params['changing_length'] = False
 params['specific_random_seed'] = True
