@@ -12,7 +12,6 @@ m1, m2 = 1, 1
 # The gravitational acceleration (m.s-2).
 g = 9.81
 tau = 0
-attenuation_rate = 100
 
 
 def get_pendulum_data(n_ics,params):
@@ -184,10 +183,9 @@ def pendulum_to_movie(X,Xdot,n_ics,params):
                     + argument_derivative2(X[i,0],Xdot[i,0],Xdot[i,2],X[i,1],Xdot[i,1],Xdot[i,3],len))*255+center_dot
     i , len = 1,1
     return x,dx,ddx
-
 """
 params = {}
-
+attenuation_rate = 100
 params['adding_noise'] = False
 params['changing_length'] = False
 params['specific_random_seed'] = True
