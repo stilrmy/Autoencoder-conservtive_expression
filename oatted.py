@@ -23,15 +23,16 @@ from torch.autograd import Variable
 environment = "server"
 loss_log = []
 params = {}
-params['epochs'] = 5000
+#params['learning_rate'] = trial.suggest_float('lr',0,1)
+params['epochs'] = 1500
 params['batch_size'] = 50
 if environment == 'laptop':
     params['root_dir'] =R'C:\Users\87106\OneDrive\sindy\progress'
 elif environment == 'desktop':
     params['root_dir'] = R'E:\OneDrive\sindy\progress'
 elif environment == 'server':
-    params['root_dir'] = R'./progress/angle'
-params['learning_rate'] = 1e-8
+    params['root_dir'] = R'./progress/angle_tt'
+params['learning_rate'] = 1e-7
 # save parameters
 params['if_save'] = True
 params['save_date'] = str(datetime.date.today())
@@ -55,7 +56,7 @@ loading_path = os.path.join(params['root_dir'], params['load_date'],params['load
 print(PATH)
 
 # %%
-device = 'cuda:0'
+device = 'cuda:2'
 data = example_pendulum_double_pendulum.get_pendulum_data(10,params)
 image = data['x']
 image_t = data['dx']
@@ -119,7 +120,7 @@ for epoch in range(params['epochs']):
             angle_true = torch.tensor(angle_temp[j,:],dtype=torch.float32).to(device)
             angle_t_true = torch.tensor(angle_t_temp[j,:],dtype=torch.float32).to(device)
             angle_tt_true = torch.tensor(angle_tt_temp[j,:],dtype=torch.float32).to(device)
-            loss_angle = torch.abs(angle_true[0] - pre[0]) + torch.abs(angle_true[1]-pre[1])
+            loss_angle = torch.abs(angle_tt_true[0] - pre[0]) + torch.abs(angle_tt_true[1]-pre[1])
             #loss_angle_t = torch.abs(angle_t_true - pre[1])
             #loss_angle_tt = torch.abs(angle_tt_true[0] - pre[2]) + torch.abs(angle_tt_true[1]-pre[3])
             loss = loss_angle 
@@ -135,6 +136,8 @@ for epoch in range(params['epochs']):
     loss_log.append(loss_sum.item()/count)
     if epoch % 10 == 0:
         print('epoch: ', epoch+1, 'loss: ', loss_sum.item()/count)
+
+# %%
 
 
 # %%

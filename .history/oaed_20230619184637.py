@@ -23,7 +23,8 @@ from torch.autograd import Variable
 environment = "server"
 loss_log = []
 params = {}
-params['epochs'] = 5000
+#params['learning_rate'] = trial.suggest_float('lr',0,1)
+params['epochs'] = 500
 params['batch_size'] = 50
 if environment == 'laptop':
     params['root_dir'] =R'C:\Users\87106\OneDrive\sindy\progress'
@@ -31,31 +32,30 @@ elif environment == 'desktop':
     params['root_dir'] = R'E:\OneDrive\sindy\progress'
 elif environment == 'server':
     params['root_dir'] = R'./progress/angle'
-params['learning_rate'] = 1e-8
+params['learning_rate'] = 1e-7
 # save parameters
 params['if_save'] = True
 params['save_date'] = str(datetime.date.today())
 params['save_ver'] = '2'
 #load parameters
-params['if_load'] = False
-params['load_date'] = '2023-06-20'
-params['load_ver'] = '1'
+params['if_load'] = True
+params['load_date'] = '2023-06-19'
+params['load_ver'] = '2'
 #noise setting
 params['adding_noise'] = False
 params['noise_type'] = 'angle_noise'
 params['noiselevel'] = 1e-3
 #pendulum length setting
-params['changing_length'] = False
+params['changing_length'] = True
 #random seed setting
 params['specific_random_seed'] = True
 params['random_seed'] = 22
-# default random seed:22
 PATH = os.path.join(params['root_dir'], params['save_date'],params['save_ver'])
 loading_path = os.path.join(params['root_dir'], params['load_date'],params['load_ver'],'model.pth')
 print(PATH)
 
 # %%
-device = 'cuda:0'
+device = 'cuda:7'
 data = example_pendulum_double_pendulum.get_pendulum_data(10,params)
 image = data['x']
 image_t = data['dx']
@@ -136,6 +136,11 @@ for epoch in range(params['epochs']):
     if epoch % 10 == 0:
         print('epoch: ', epoch+1, 'loss: ', loss_sum.item()/count)
 
+# %%
+params['save_date'] = str(datetime.date.today())
+params['save_ver'] = '1'
+PATH = os.path.join(params['root_dir'], params['save_date'],params['save_ver'])
+print(PATH)
 
 # %%
 def saving(model,PATH):

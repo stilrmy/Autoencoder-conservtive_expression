@@ -23,22 +23,24 @@ from torch.autograd import Variable
 environment = "server"
 loss_log = []
 params = {}
-params['epochs'] = 5000
-params['batch_size'] = 50
+params['epochs'] = 3000
+params['batch_size'] = 500
 if environment == 'laptop':
-    params['root_dir'] =R'C:\Users\87106\OneDrive\sindy\progress'
+    params['root_dir'] =R'C:\Users\87106\OneDrive\sindy\progress\double_pendulum\angle'
 elif environment == 'desktop':
     params['root_dir'] = R'E:\OneDrive\sindy\progress'
 elif environment == 'server':
     params['root_dir'] = R'./progress/angle'
 params['learning_rate'] = 1e-8
+params['switching_epochs'] = 300
+params['learning_rate_2'] = 1e-10
 # save parameters
 params['if_save'] = True
 params['save_date'] = str(datetime.date.today())
-params['save_ver'] = '2'
+params['save_ver'] = '1_temp'
 #load parameters
 params['if_load'] = False
-params['load_date'] = '2023-06-20'
+params['load_date'] = '2023-06-23'
 params['load_ver'] = '1'
 #noise setting
 params['adding_noise'] = False
@@ -50,13 +52,15 @@ params['changing_length'] = False
 params['specific_random_seed'] = True
 params['random_seed'] = 22
 # default random seed:22
+#sample image setting: dot or bar
+params['sample_mode'] = 'bar'
 PATH = os.path.join(params['root_dir'], params['save_date'],params['save_ver'])
 loading_path = os.path.join(params['root_dir'], params['load_date'],params['load_ver'],'model.pth')
 print(PATH)
 
 # %%
-device = 'cuda:0'
-data = example_pendulum_double_pendulum.get_pendulum_data(10,params)
+device = 'cuda:7'
+data = example_pendulum_double_pendulum.get_pendulum_data(50,params)
 image = data['x']
 image_t = data['dx']
 image_tt = data['ddx']
@@ -72,8 +76,7 @@ print(angle_tt.shape)
 class angle_predict(nn.Module):
     def __init__(self):
         super(angle_predict, self).__init__()
-        self.fc1 = nn.Linear(2601, 1024)
-        self.dropout = nn.Dropout(0.4)
+        self.fc1 = nn.Linear(7803, 1024)
         self.fc2 = nn.Linear(1024, 512)
         self.fc3 = nn.Linear(512, 256)
         self.fc4 = nn.Linear(256, 64) 
@@ -82,16 +85,12 @@ class angle_predict(nn.Module):
         m = nn.ReLU()
         x = self.fc1(x)
         x = m(x)
-        x = self.dropout(x)
         x = self.fc2(x)
         x = m(x)
-        x = self.dropout(x)
         x = self.fc3(x)
         x = m(x) 
-        x = self.dropout(x)
         x = self.fc4(x)
         x = m(x)
-        x = self.dropout(x)
         x = self.fc5(x) 
         return x
 model = angle_predict()
@@ -113,8 +112,10 @@ for epoch in range(params['epochs']):
         angle_temp = angle[i*params['batch_size']:(i+1)*params['batch_size'],:]
         angle_t_temp = angle_t[i*params['batch_size']:(i+1)*params['batch_size'],:]
         angle_tt_temp = angle_tt[i*params['batch_size']:(i+1)*params['batch_size'],:]
-        for j in range(image_temp.shape[0]):
-            input = Variable(torch.tensor(image_temp[j,:],dtype=torch.float32).to(device))
+        for j in range(image_temp.shape[0]-2):
+            input = torch.tensor(image_temp[j:j+3,:],dtype=torch.float32).to(device)
+            input = input.reshape(input.shape[0]*input.shape[1])
+            input = Variable(input)
             pre = model.forward(input)
             angle_true = torch.tensor(angle_temp[j,:],dtype=torch.float32).to(device)
             angle_t_true = torch.tensor(angle_t_temp[j,:],dtype=torch.float32).to(device)
@@ -133,6 +134,8 @@ for epoch in range(params['epochs']):
             opt.step()
         model.eval()
     loss_log.append(loss_sum.item()/count)
+    if loss_sum.item()/count < 0.2:
+        opt = torch.optim.Adam(model.parameters(),lr=params['learning_rate_2'])
     if epoch % 10 == 0:
         print('epoch: ', epoch+1, 'loss: ', loss_sum.item()/count)
 
