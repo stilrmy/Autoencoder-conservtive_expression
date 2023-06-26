@@ -29,7 +29,7 @@ device = 'cuda:0'
 # In[ ]:
 
 
-environment = "desktop"
+environment = "server"
 if environment == 'laptop':
     root_dir =R'C:\Users\87106\OneDrive\sindy\progress'
 elif environment == 'desktop':
@@ -37,11 +37,11 @@ elif environment == 'desktop':
 elif environment == 'server':
     root_dir = R'/mnt/ssd1/stilrmy/Angle_detector/progress'
 #the angle_extractor
-AE_save_date = '2023-04-25'
+AE_save_date = '2023-06-26'
 AE_save_ver = '1'
 #the angle_t_extractor
-AtE_save_date = '4-21'
-AtE_save_ver = '1'
+AtE_save_date = '2023-06-25'
+AtE_save_ver = '2'
 #genrate path
 AE_path = os.path.join(root_dir,AE_save_date,AE_save_ver,'model.pth')
 AtE_path = os.path.join(root_dir,'Angle_t_extractor',AtE_save_date,AtE_save_ver,'model.pth')
@@ -104,7 +104,7 @@ class angle_t_predict(nn.Module):
         x = self.fc6(x) 
         return x
 AtE = angle_t_predict()
-AtE.load_state_dict(torch.load(AtE_path,map_location=torch.device('cuda:0')))
+AtE.load_state_dict(torch.load(AtE_path))
 AtE = AtE.to(device)
 
 
@@ -132,8 +132,10 @@ def image_process(sample_size,params):
         temp = AtE.forward(input)
         temp = temp.cpu().detach().numpy()
         angle_t[i] = temp
+    t = data['t']
+    print('type of t: ',t.dtype)
     
-    return angle,angle_t,angle_tt
+    return angle,angle_t,angle_tt,t
 
 
 # In[33]:

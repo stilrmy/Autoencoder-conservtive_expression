@@ -47,7 +47,7 @@ def plot(n_ics,params):
 def generate_pendulum_data(n_ics,params):
     def pend(y,t,dc,g,l):
         theta, omega = y
-        dydt = [omega, -dc*omega/g - g*np.sin(theta)/l]
+        dydt = [omega, -dc*omega/1 - g*np.sin(theta)/l]
         return dydt
     'pendulum with friction'
     t = np.arange(0, 10, .02)
@@ -154,28 +154,3 @@ def wrap_to_pi(z):
     subtract_m = (z_mod > np.pi) * (-2*np.pi)
     return z_mod + subtract_m
 
-environment = "server"
-loss_log = []
-params = {}
-#params['learning_rate'] = trial.suggest_float('lr',0,1)
-params['epochs'] = 5000
-params['batch_size'] = 500
-if environment == 'laptop':
-    params['root_dir'] =R'C:\Users\87106\OneDrive\sindy\progress'
-elif environment == 'desktop':
-    params['root_dir'] = R'E:\OneDrive\sindy\progress'
-elif environment == 'server':
-    params['root_dir'] = R'/mnt/ssd1/stilrmy/Angle_detector/progress'
-params['learning_rate'] = 1e-8
-
-
-#noise setting
-params['adding_noise'] = False
-params['noise_type'] = 'angle_noise'
-params['noiselevel'] = 1e-3
-#pendulum length setting
-params['changing_length'] = False
-params['c'] = 1.4e-4
-params['g'] = 9.81
-params['l'] = 1
-plot(1,params)

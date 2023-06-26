@@ -11,7 +11,7 @@ import sys
 sys.path.append(r'../../HLsearch/')
 
 
-def LagrangianLibraryTensor(x, xdot, expr, d_expr, states, states_dot,device, scaling=False, scales=None):
+def LagrangianLibraryTensor(x, xdot, expr, states, states_dot,device, scaling=False, scales=None):
     """
     A function dedicated to build time-series tensor for the lagrangian equation.
     The lagrangian equation is described as follow
@@ -38,7 +38,6 @@ def LagrangianLibraryTensor(x, xdot, expr, d_expr, states, states_dot,device, sc
     q = sympy.Array(np.array(sympy.Matrix(states[:n//2])).squeeze().tolist())
     qdot = sympy.Array(np.array(sympy.Matrix(states[n//2:])).squeeze().tolist())
     phi = sympy.Array(np.array(sympy.Matrix(expr)).squeeze().tolist())
-    d = sympy.Array(np.array(sympy.Matrix(d_expr)).squeeze().tolist())
     phi_q = derive_by_array(phi, q)
     #print(phi)
     #print(q)
@@ -49,8 +48,6 @@ def LagrangianLibraryTensor(x, xdot, expr, d_expr, states, states_dot,device, sc
     phi_qdot = derive_by_array(phi, qdot)
     phi_qdot2 = derive_by_array(phi_qdot, qdot)
     phi_qdotq = derive_by_array(phi_qdot, q)
-    d_qdot = derive_by_array(d, qdot)
-    print("d_qdot",d_qdot)
 
     #print("phi_qdot", phi_qdot)
     #print("phi_qdot2",phi_qdot2)
@@ -68,7 +65,6 @@ def LagrangianLibraryTensor(x, xdot, expr, d_expr, states, states_dot,device, sc
         Delta = torch.ones(j, k, l,device=device)
         Zeta = torch.ones(i, j, k, l,device=device)
         Eta = torch.ones(i, j, k, l,device=device)
-    Dissip = torch.ones(int(np.array(d_qdot).shape[0]), l,device=device)
 
     for idx in range(len(states)):
         locals()[states[idx]] = x[:, idx]
@@ -108,22 +104,12 @@ def LagrangianLibraryTensor(x, xdot, expr, d_expr, states, states_dot,device, sc
                     scales = torch.max(eta) - torch.min(eta)
                     eta = eta / scales
                 Eta[n, :] = eta
-    
-    for n in range(int(np.array(d_qdot).shape[0])):
-        if n == 0:
-            dissip = torch.ones(l,device=device)
-        else:
-            dissip = eval(str(d_qdot[n]))
-        dissip = dissip.to(device)
-        print(dissip,dissip.device)
-        Dissip[n,:] = dissip*Dissip[n,:]
 
 
+    return Zeta, Eta, Delta
 
-    return Zeta, Eta, Delta, Dissip
 
-
-def lagrangianforward(coef, coef_d, Zeta, Eta, Delta, Dissip, xdot, device):
+def lagrangianforward(coef, Zeta, Eta, Delta, xdot, device):
     """
     Computing time series of q_tt (q double dot) prediction
     #Params:
@@ -141,7 +127,6 @@ def lagrangianforward(coef, coef_d, Zeta, Eta, Delta, Dissip, xdot, device):
     DL_qdot2 = torch.matmul(coef,Zeta)
     #DL_qdotq = torch.einsum('ijkl,k->ijl', Eta, coef)
     DL_qdotq = torch.matmul(coef,Eta)
-    D_qdot = torch.matmul(coef_d,Dissip)
     xdot = torch.from_numpy(xdot).to(device).float()
     #xdot.requires_grad=True
     n = xdot.shape[1]
@@ -151,12 +136,11 @@ def lagrangianforward(coef, coef_d, Zeta, Eta, Delta, Dissip, xdot, device):
     #C = torch.einsum('ijl,il->jl', DL_qdotq, q_t)
     C = DL_qdotq*q_t
     B = DL_q
-    D = D_qdot
     invA = 1.0/DL_qdot2
     #print(invA.shape)
-    q_tt = torch.mul(invA,B-C-D)
+    q_tt = torch.mul(invA,B-C)
     'correspond to the case2: no external output'
-    'A->M B->N C->O D->D'
+    'A->M B->N C->O'
     return q_tt
 
 
