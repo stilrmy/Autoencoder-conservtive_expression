@@ -148,9 +148,11 @@ def buildTimeDerivativeMatrixFromFunctions(data, data_t, function_description, d
 
 def generateExpression(coefficient_vector,function_description):
     ret = ''
-    for i in range(len(coefficient_vector)):
-        ret = ret + str(coefficient_vector[i]) + '*' + str(function_description[i])
-        ret = ret + ' + '
+    if coefficient_vector.shape[0] != 0 :
+        for i in range(len(coefficient_vector)-1):
+            ret = ret + str(coefficient_vector[i]) + '*' + str(function_description[i])
+            ret = ret + ' + '
+        ret = ret + str(coefficient_vector[-1]) + '*' + str(function_description[-1])
     return ret
 
 
