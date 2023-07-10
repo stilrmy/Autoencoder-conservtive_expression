@@ -4,8 +4,8 @@ from scipy.integrate import odeint
 from PIL import Image
 
 def get_pendulum_data(n_ics,params):
-    t,x,dx,ddx,z,dz = generate_pendulum_data(n_ics,params)
-
+    t,x,dx,ddx,z = generate_pendulum_data(n_ics,params)
+    print('sample version: c=-0.14')
     data = {}
     data['t'] = t
     data['x'] = x.reshape((n_ics*t.size, -1))
@@ -13,7 +13,7 @@ def get_pendulum_data(n_ics,params):
     data['ddx'] = ddx.reshape((n_ics*t.size, -1))
     data['z'] = z.reshape((n_ics*t.size, -1))[:,0:1]
     data['dz'] = z.reshape((n_ics*t.size, -1))[:,1:2]
-    data['ddz'] = dz.reshape((n_ics*t.size, -1))[:,1:2]
+    data['ddz'] = -0.14*data['dz']-9.81*np.sin(data['z'])
 
     #adding noise
     
@@ -45,10 +45,8 @@ def plot(n_ics,params):
     return
 
 def generate_pendulum_data(n_ics,params):
-    def pend(y,t,dc,g,l):
-        theta, omega = y
-        dydt = [omega, -dc*omega/1 - g*np.sin(theta)/l]
-        return dydt
+    #100g pendulum
+    f  = lambda z, t: [z[1], -0.14*z[1]-9.81*np.sin(z[0])]
     'pendulum with friction'
     t = np.arange(0, 10, .02)
     '500 time steps'
@@ -58,18 +56,14 @@ def generate_pendulum_data(n_ics,params):
     z1range = np.array([-np.pi,np.pi])
     z2range = np.array([-2.1,2.1])
     i = 0
-    dc = params['c']
-    g = params['g']
-    l = params['l']
     while (i < n_ics):
         z0 = np.array([(z1range[1]-z1range[0])*np.random.rand()+z1range[0],
             (z2range[1]-z2range[0])*np.random.rand()+z2range[0]])
         if np.abs(z0[1]**2/2. - np.cos(z0[0])) > .99:
             continue
-        z[i] = odeint(pend, z0, t , args = (dc,g,l))
+        z[i] = odeint(f, z0, t)
         'z.shape:(n_ics,t,2)'
         'theta,theta_dot'
-        dz[i] = np.array([pend(z[i,j,:], t[j], dc, g, l) for j in range(len(t))])
         'theta_dot,theta_ddot'
         i += 1
     if params['adding_noise'] == True :
@@ -114,7 +108,7 @@ def generate_pendulum_data(n_ics,params):
     #         ddx[i,j] = create_image(z[i,j,0])*((argument_derivative(z[i,j,0], dz[i,j,0]))**2 \
     #                         + argument_derivative2(z[i,j,0], dz[i,j,0], dz[i,j,1]))
 
-    return t,x,dx,ddx,z,dz
+    return t,x,dx,ddx,z
 
 
 def pendulum_to_movie(z, dz, params):

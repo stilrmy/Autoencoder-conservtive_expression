@@ -60,6 +60,7 @@ def LagrangianLibraryTensor(x, xdot, expr, states, states_dot,device, scaling=Fa
         Delta = torch.ones(j, l,device=device)
         Zeta = torch.ones(j, l,device=device)
         Eta = torch.ones(j, l,device=device)
+        Gamma = torch.ones(j, l,device=device)
     else:
         i, j, k = np.array(phi_qdot2).shape
         Delta = torch.ones(j, k, l,device=device)
@@ -76,6 +77,7 @@ def LagrangianLibraryTensor(x, xdot, expr, states, states_dot,device, scaling=Fa
             delta = eval(str(phi_q[n]))
             zeta = eval(str(phi_qdot2[n]))
             eta = eval(str(phi_qdotq[n]))
+            gamma = eval(str(phi_qdot[n]))
             'time series of the value of phi_q'
 
             if(isinstance(delta, int)):
@@ -105,11 +107,19 @@ def LagrangianLibraryTensor(x, xdot, expr, states, states_dot,device, scaling=Fa
                     eta = eta / scales
                 Eta[n, :] = eta
 
+            if (isinstance(gamma, int)):
+                Gamma[n, :] = gamma * Gamma[n, :]
+            else:
+                if (scaling == True):
+                    scales = torch.max(gamma) - torch.min(gamma)
+                    gamma = gamma / scales
+                Gamma[n, :] = gamma
 
-    return Zeta, Eta, Delta
+
+    return Zeta, Eta, Delta,Gamma
 
 
-def lagrangianforward(coef, Zeta, Eta, Delta, xdot, device):
+def lagrangianforward(coef,c,Zeta, Eta, Delta,Gamma, xdot, device):
     """
     Computing time series of q_tt (q double dot) prediction
     #Params:
@@ -120,13 +130,13 @@ def lagrangianforward(coef, Zeta, Eta, Delta, xdot, device):
     Delta       : time-series of derivative of basis functions w.r.t q 
     xdot        : Time-series of states_dot data  
     """
-
     #DL_q = torch.einsum('jkl,k->jl', Delta, coef)
     DL_q = torch.matmul(coef,Delta)
     #DL_qdot2 = torch.einsum('ijkl,k->ijl', Zeta, coef)
     DL_qdot2 = torch.matmul(coef,Zeta)
     #DL_qdotq = torch.einsum('ijkl,k->ijl', Eta, coef)
     DL_qdotq = torch.matmul(coef,Eta)
+    DL_qdot = torch.matmul(coef,Gamma)
     xdot = torch.from_numpy(xdot).to(device).float()
     #xdot.requires_grad=True
     n = xdot.shape[1]
@@ -134,11 +144,13 @@ def lagrangianforward(coef, Zeta, Eta, Delta, xdot, device):
 
 
     #C = torch.einsum('ijl,il->jl', DL_qdotq, q_t)
-    C = DL_qdotq*q_t
+    C = DL_qdotq * q_t
     B = DL_q
+    D = DL_qdot * c
+    E = B-C-D
     invA = 1.0/DL_qdot2
     #print(invA.shape)
-    q_tt = torch.mul(invA,B-C)
+    q_tt = torch.mul(invA, E)
     'correspond to the case2: no external output'
     'A->M B->N C->O'
     return q_tt
